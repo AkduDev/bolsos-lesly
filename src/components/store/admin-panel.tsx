@@ -82,12 +82,7 @@ export function AdminPanel({ onProductChange }: AdminPanelProps) {
     name: '',
     description: ''
   })
-  
-  useEffect(() => {
-    fetchProducts()
-    fetchCategories()
-  }, [])
-  
+
   const fetchProducts = async () => {
     try {
       const res = await fetch('/api/products')
@@ -99,7 +94,7 @@ export function AdminPanel({ onProductChange }: AdminPanelProps) {
       setLoading(false)
     }
   }
-  
+
   const fetchCategories = async () => {
     try {
       const res = await fetch('/api/categories')
@@ -109,6 +104,15 @@ export function AdminPanel({ onProductChange }: AdminPanelProps) {
       console.error('Error fetching categories:', error)
     }
   }
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await fetchProducts()
+      await fetchCategories()
+    }
+    
+    loadInitialData()
+  }, [])
   
   // === PRODUCTS ===
   const handleOpenNewProduct = () => {

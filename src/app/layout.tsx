@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -50,7 +50,17 @@ export default function RootLayout({
         className={`${playfair.variable} ${inter.variable} antialiased bg-background text-foreground`}
       >
         {children}
-        <Toaster />
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: 'oklch(1 0 0)',
+              border: '1px solid oklch(0.70 0.14 75 / 0.3)',
+              color: 'oklch(0.20 0.02 50)',
+            },
+          }}
+          richColors
+        />
       </body>
     </html>
   );

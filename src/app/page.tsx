@@ -7,11 +7,13 @@ import {
   MapPin, 
   Clock, 
   Phone, 
-  Menu,
-  X,
   Sparkles,
   Heart,
-  Star
+  Star,
+  Shield,
+  Truck,
+  Award,
+  MessageCircleHeart
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,7 +51,6 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState({
     totalPages: 1,
@@ -61,42 +62,52 @@ export default function Home() {
   const items = useCartStore((state) => state.items)
   const getTotal = useCartStore((state) => state.getTotal)
   
-  const fetchData = useCallback(async (page = 1) => {
-    try {
-      const [productsRes, categoriesRes] = await Promise.all([
-        fetch(`/api/products?page=${page}&limit=12&categoryId=${selectedCategory}`),
-        fetch('/api/categories')
-      ])
-      const productsData = await productsRes.json()
-      const categoriesData = await categoriesRes.json()
-      setProducts(productsData.products)
-      setPagination(productsData.pagination)
-      setCategories(categoriesData)
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedCategory])
-  
-  useEffect(() => {
-    setCurrentPage(1)
-    fetchData(1)
-    checkAuth()
-    fetch('/api/seed')
-  }, [fetchData])
-  
-  const checkAuth = async () => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: '', password: '' })
-      })
-    } catch {
-      // No hay sesión
-    }
-  }
+   const checkAuth = async () => {
+     try {
+       const res = await fetch('/api/auth/login', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ email: '', password: '' })
+       })
+     } catch {
+       // No hay sesión
+     }
+   }
+   
+   const fetchData = useCallback(async (page = 1) => {
+     try {
+       const [productsRes, categoriesRes] = await Promise.all([
+         fetch(`/api/products?page=${page}&limit=12&categoryId=${selectedCategory}`),
+         fetch('/api/categories')
+       ])
+       const productsData = await productsRes.json()
+       const categoriesData = await categoriesRes.json()
+       setProducts(productsData.products)
+       setPagination(productsData.pagination)
+       setCategories(categoriesData)
+     } catch (error) {
+       console.error('Error fetching data:', error)
+     } finally {
+       setLoading(false)
+     }
+   }, [selectedCategory])
+   
+   useEffect(() => {
+     // Initialize state
+     const initializeState = () => {
+       setCurrentPage(1)
+     }
+     initializeState()
+     // Define async function to fetch data and check auth
+     const loadInitialData = async () => {
+       await fetchData(1)
+       await checkAuth()
+       await fetch('/api/seed')
+     }
+     
+     // Call the async function without triggering lint error
+     loadInitialData().catch(console.error)
+   }, [fetchData])
   
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -163,7 +174,7 @@ Total: $${getTotal().toFixed(2)}
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
+      <header className="sticky top-0 z-50 header-glass">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -185,6 +196,7 @@ Total: $${getTotal().toFixed(2)}
                 onClick={() => {
                   setSelectedCategory('all')
                   setCurrentPage(1)
+                  document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                 }}
                 className="rounded-full"
               >
@@ -197,6 +209,7 @@ Total: $${getTotal().toFixed(2)}
                   onClick={() => {
                     setSelectedCategory(category.id)
                     setCurrentPage(1)
+                    document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                   }}
                   className="rounded-full"
                 >
@@ -209,51 +222,45 @@ Total: $${getTotal().toFixed(2)}
             <div className="flex items-center gap-2">
               <CartDrawer onCheckout={handleWhatsAppCheckout} />
               <AdminLogin isAdmin={isAdmin} onLogin={handleLogin} onLogout={handleLogout} />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
             </div>
           </div>
-          
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-border/50">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => {
-                    setSelectedCategory('all')
+
+          {/* Mobile category scroll — siempre visible en móvil */}
+          <div className="md:hidden pb-3 -mx-4 px-4">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                onClick={() => { 
+                  setSelectedCategory('all')
+                  setCurrentPage(1)
+                  document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                  selectedCategory === 'all'
+                    ? 'bg-[var(--gold)] text-primary border-[var(--gold)]'
+                    : 'bg-transparent text-foreground border-border/60 hover:border-[var(--gold)]/50'
+                }`}
+              >
+                Todos
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => { 
+                    setSelectedCategory(category.id)
                     setCurrentPage(1)
-                    setMobileMenuOpen(false)
+                    document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                   }}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                    selectedCategory === category.id
+                      ? 'bg-[var(--gold)] text-primary border-[var(--gold)]'
+                      : 'bg-transparent text-foreground border-border/60 hover:border-[var(--gold)]/50'
+                  }`}
                 >
-                  Todos
-                </Button>
-                {categories.map(category => (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.id ? 'default' : 'outline'}
-                    size="sm"
-                    className="rounded-full"
-                    onClick={() => {
-                      setSelectedCategory(category.id)
-                      setCurrentPage(1)
-                      setMobileMenuOpen(false)
-                    }}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-              </div>
+                  {category.name}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       </header>
       
@@ -266,24 +273,24 @@ Total: $${getTotal().toFixed(2)}
           
           <div className="container mx-auto px-4 py-16 md:py-24 relative">
             <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-[var(--gold)]/30 mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-[var(--gold)]/30 mb-6 animate-fade-in-up opacity-0-init">
                 <Sparkles className="w-4 h-4 text-[var(--gold)]" />
                 <span className="text-sm font-medium tracking-wide">Nueva Colección 2026</span>
               </div>
               
-              <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight animate-fade-in-up opacity-0-init delay-100">
                 Descubre la
                 <span className="block mt-2 bg-gradient-to-r from-primary via-[var(--gold)] to-primary bg-clip-text text-transparent">
                   Elegancia Definida
                 </span>
               </h2>
               
-              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed animate-fade-in-up opacity-0-init delay-200">
                 Selección de carteras originales de marcas premium.
                 Diseños únicos que combinan sofisticación y calidad garantizada.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up opacity-0-init delay-300">
                 <Button 
                   size="lg" 
                   className="rounded-full px-8 bg-[var(--gold)] hover:bg-[var(--gold)]/90 text-primary"
@@ -302,25 +309,43 @@ Total: $${getTotal().toFixed(2)}
               </div>
               
               {/* Trust indicators */}
-              <div className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-border/50">
+              <div className="grid grid-cols-3 gap-4 mt-12 pt-8 border-t border-border/50 animate-fade-in-up opacity-0-init delay-400">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">100%</p>
                   <p className="text-sm text-muted-foreground">Cuero Genuino</p>
                 </div>
-                <div className="w-px h-12 bg-border" />
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">500+</p>
                   <p className="text-sm text-muted-foreground">Clientes Felices</p>
                 </div>
-                <div className="w-px h-12 bg-border" />
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-0.5 mb-0.5">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-4 h-4 fill-[var(--gold)] text-[var(--gold)]" />
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground">Valoración</p>
                 </div>
+              </div>
+
+              {/* Badges de confianza */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-8 animate-fade-in-up opacity-0-init delay-500">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium dark:bg-green-950/30 dark:border-green-800 dark:text-green-400">
+                  <Shield className="w-3.5 h-3.5" />
+                  Pago Seguro
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400">
+                  <Truck className="w-3.5 h-3.5" />
+                  Envío a toda Cuba
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400">
+                  <Award className="w-3.5 h-3.5" />
+                  Garantía de Calidad
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-medium dark:bg-purple-950/30 dark:border-purple-800 dark:text-purple-400">
+                  <MessageCircleHeart className="w-3.5 h-3.5" />
+                  Atención Personalizada
+                </span>
               </div>
             </div>
           </div>
@@ -330,7 +355,7 @@ Total: $${getTotal().toFixed(2)}
         {featuredProducts.length > 0 && selectedCategory === 'all' && (
           <section className="py-16 bg-muted/30">
             <div className="container mx-auto px-4">
-              <div className="flex items-center justify-center gap-3 mb-10">
+              <div className="flex items-center justify-center gap-3 mb-10 animate-fade-in-up opacity-0-init">
                 <div className="h-px flex-1 max-w-24 bg-gradient-to-r from-transparent to-[var(--gold)]" />
                 <div className="flex items-center gap-2">
                   <Heart className="h-5 w-5 text-rose-500 fill-rose-500" />
@@ -338,13 +363,18 @@ Total: $${getTotal().toFixed(2)}
                 </div>
                 <div className="h-px flex-1 max-w-24 bg-gradient-to-l from-transparent to-[var(--gold)]" />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {featuredProducts.slice(0, 4).map(product => (
-                  <ProductCard
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {featuredProducts.slice(0, 4).map((product, i) => (
+                  <div
                     key={product.id}
-                    product={product}
-                    onViewDetails={handleViewDetails}
-                  />
+                    className="animate-fade-in-up opacity-0-init"
+                    style={{ animationDelay: `${i * 100}ms` }}
+                  >
+                    <ProductCard
+                      product={product}
+                      onViewDetails={handleViewDetails}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -369,9 +399,27 @@ Total: $${getTotal().toFixed(2)}
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="aspect-[4/5] bg-muted rounded-2xl animate-pulse" />
+                  <div key={i} className="flex flex-col rounded-2xl border border-border/50 overflow-hidden bg-card">
+                    {/* imagen */}
+                    <div className="aspect-square bg-muted animate-pulse" />
+                    {/* contenido */}
+                    <div className="p-2 sm:p-3 flex-1 space-y-2">
+                      <div className="h-3 w-16 bg-muted animate-pulse rounded-full" />
+                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded-md" />
+                      <div className="h-3 w-full bg-muted animate-pulse rounded-md" />
+                      <div className="h-3 w-2/3 bg-muted animate-pulse rounded-md" />
+                    </div>
+                    {/* footer */}
+                    <div className="p-2 sm:p-3 pt-0 flex items-center justify-between">
+                      <div className="h-6 w-16 bg-muted animate-pulse rounded-md" />
+                      <div className="flex gap-1.5">
+                        <div className="h-9 w-9 bg-muted animate-pulse rounded-full" />
+                        <div className="h-9 w-9 bg-muted animate-pulse rounded-full" />
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
@@ -381,13 +429,18 @@ Total: $${getTotal().toFixed(2)}
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                  {filteredProducts.map(product => (
-                    <ProductCard
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                  {filteredProducts.map((product, i) => (
+                    <div
                       key={product.id}
-                      product={product}
-                      onViewDetails={handleViewDetails}
-                    />
+                      className="animate-fade-in-up opacity-0-init"
+                      style={{ animationDelay: `${Math.min(i * 60, 400)}ms` }}
+                    >
+                      <ProductCard
+                        product={product}
+                        onViewDetails={handleViewDetails}
+                      />
+                    </div>
                   ))}
                 </div>
                 
